@@ -78,6 +78,7 @@ class BlockChain:
     def do_minig(self):
         while True:
             self.mine_block(self.key.get_publickey())
+            self.adjust_difficulty()
 
     def add_transaction_to_block(self, block):
         # Higer priority for the higher fee
@@ -108,6 +109,22 @@ class BlockChain:
         # TODO: Broadcast your result to others
         print("I've mined the coin! hash number: %s in difficulty %s" % (new_block.hash, self.difficulty))
         self.chain.append(new_block)
+ 
+    def adjust_difficulty(self):
+        # Only adjust difficulty after the numbers of blocks "self.adjust_difficulty_blocks"
+        if len(self.chain) < self.adjust_difficulty_blocks or len(self.chain) % self.adjust_difficulty_blocks != 1:
+            return self.difficulty
+ 
+        first_block_ts = self.chain[-1*self.adjust_difficulty_blocks-1].timestamp
+        last_block_ts = self.chain[-1].timestamp
+        average_time_consumed = round((last_block_ts - first_block_ts) / self.adjust_difficulty_blocks, 2)
+        print(f"Average time: {average_time_consumed}s.")
+        if average_time_consumed > self.block_time:
+            print("Lower difficulty")
+            self.difficulty -= 1
+        else:
+            print("Higher difficulty")
+            self.difficulty += 1
 
 class Key:
     def __init__(self):
@@ -142,4 +159,3 @@ if __name__ == '__main__':
     blockchain = BlockChain(mykey)
     blockchain.create_genesis_block()
     blockchain.do_minig()
-
