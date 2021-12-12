@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import time
+import hashlib
+import random
 import rsa
 
 class Transaction:
@@ -16,7 +18,7 @@ class Block:
         self.previous_hash = previous_hash
         self.hash = ''
         self.difficulty = difficulty
-        self.nounce = 0
+        self.nonce = 0
         self.timestamp = int(time.time())
         self.transactions = []
         self.miner = miner
@@ -31,7 +33,7 @@ class BlockChain:
         # How long can generate one block
         self.block_time = 30
         # How much rewards miners will get
-        self.mining_rewards = 10
+        self.miner_rewards = 10
         # The max num. of transactions in one block
         self.block_limitation = 32
         # All the blocks in current chain
@@ -44,12 +46,12 @@ class BlockChain:
     def create_genesis_block(self):
         print("God creates genesis block!")
         genesis_block = Block("First Block here!", self.difficulty, 'evshary', self.miner_rewards)
-        genesis_block.hash = self.get_hash(genesis_bock, 0)
+        genesis_block.hash = self.get_hash(genesis_block, 0)
         self.chain.append(genesis_block)
 
     def get_transactions_string(self, block):
         transactions_str = ""
-        for transaction in block.tanactions:
+        for transaction in block.transactions:
             transaction_dict = {
                 'sender': str(transaction.sender),
                 'receiver': str(transaction.receiver),
@@ -58,7 +60,7 @@ class BlockChain:
                 'message': transaction.message
             }
             transactions_str += str(transaction_dict)
-        return transaction_str
+        return transactions_str
 
     def get_hash(self, block, nonce):
         s = hashlib.sha1()
@@ -77,9 +79,35 @@ class BlockChain:
         while True:
             self.mine_block(self.key.get_publickey())
 
+    def add_transaction_to_block(self, block):
+        # Higer priority for the higher fee
+        self.pending_tansactions.sort(key=lambda x: x.fee, reverse=True)
+        if len(self.pending_tansactions) > self.block_limitation:
+            transaction_accepted = self.pending_tansactions[:self.block_limitation]
+            self.pending_tansactions = self.pending_tansactions[self.block_limitation:]
+        else:
+            transaction_accepted = self.pending_tansactions
+            self.pending_tansactions = []
+        block.transactions = transaction_accepted
+
     def mine_block(self, miner):
-        print("Minig....")
-        time.sleep(1)
+        last_block = self.chain[-1]
+        new_block = Block(last_block.hash, self.difficulty, miner, self.miner_rewards)
+
+        self.add_transaction_to_block(new_block)
+        new_block.previous_hash = last_block.hash
+        new_block.difficulty = self.difficulty
+        new_block.nonce = random.getrandbits(32)
+        new_block.hash = self.get_hash(new_block, new_block.nonce)
+
+        while new_block.hash[0:self.difficulty] != "0" * self.difficulty:
+            new_block.nonce += 1
+            new_block.hash = self.get_hash(new_block, new_block.nonce)
+            # TODO: While receiving others' verified result, go to next block
+        
+        # TODO: Broadcast your result to others
+        print("I've mined the coin! hash number: %s in difficulty %s" % (new_block.hash, self.difficulty))
+        self.chain.append(new_block)
 
 class Key:
     def __init__(self):
@@ -112,5 +140,6 @@ if __name__ == '__main__':
     mykey = Key()
     mykey.show_key()
     blockchain = BlockChain(mykey)
+    blockchain.create_genesis_block()
     blockchain.do_minig()
 
