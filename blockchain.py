@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 
+import sys
 import time
 import hashlib
 import random
 import rsa
+import threading
+import socket
 
 class Transaction:
     def __init__(self, sender, receiver, amounts, fee, message):
@@ -153,9 +156,33 @@ class Key:
         print("Public key: %s" % self.public_key)
         print("Private key: %s" % self.private_key)
 
+class Server:
+    def __init__(self, myport):
+        self.socket_host = "127.0.0.1"
+        self.socket_port = myport
+        mythread = threading.Thread(target=self.listening_to_connection)
+        mythread.start()
+    
+    def listening_to_connection(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as mysocket:
+            mysocket.bind((self.socket_host, self.socket_port))
+            mysocket.listen()
+            while True:
+                conn, address = mysocket.accept()
+                client_handler = threading.Thread(
+                    target=self.receive_socket_message,
+                    args=(conn, address)
+                )
+                client_handler.start()
+    
+    def receive_socket_message(self, connection, address):
+        with connection:
+            print(f"Connected by {address}")
+
 if __name__ == '__main__':
     mykey = Key()
     mykey.show_key()
+    server = Server(int(sys.argv[1]))
     blockchain = BlockChain(mykey)
     blockchain.create_genesis_block()
     blockchain.do_minig()
