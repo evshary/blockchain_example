@@ -7,6 +7,7 @@ import random
 import rsa
 import threading
 import socket
+import json
 
 class Transaction:
     def __init__(self, sender, receiver, amounts, fee, message):
@@ -178,6 +179,30 @@ class Server:
     def receive_socket_message(self, connection, address):
         with connection:
             print(f"Connected by {address}")
+            chunk_list = []
+            while True:
+                chunk = connection.recv(4096)
+                if not chunk:
+                    break
+                chunk_list.append(chunk)
+            message = b"".join(chunk_list)
+            message_dict = json.load(message)
+            response = ""
+            if message_dict["request"] == "get_balance":
+                print("get_balance")
+            elif message_dict["request"] == "transaction":
+                print("transaction")
+            elif message_dict["request"] == "clone_blockchain":
+                print("clone_blockchain")
+            elif message_dict["request"] == "broadcast_block":
+                print("broadcast_block")
+            elif message_dict["request"] == "broadcast_transaction":
+                print("broadcast_transaction")
+            elif message_dict["request"] == "add_node":
+                print("add_node")
+            else:
+                print("Wrong request")
+            connection.sendall(response)
 
 if __name__ == '__main__':
     mykey = Key()
