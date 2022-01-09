@@ -1,5 +1,11 @@
 # blockchain_example
 
+# Usage
+
+```py
+python3 main.py [port number]
+```
+
 # Tool
 * [Hash Functions](https://www.fileformat.info/tool/hash.htm)
 
