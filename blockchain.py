@@ -11,6 +11,17 @@ class Transaction:
         self.fee = fee
         self.message = message
 
+    def to_string(self):
+        transaction_dict = {
+            'sender': str(self.sender),
+            'receiver': str(self.receiver),
+            'amounts': self.amounts,
+            'fee': self.fee,
+            'message': self.message
+        }
+        return str(transaction_dict)
+
+
 class Block:
     def __init__(self, previous_hash, difficulty, miner, miner_rewards):
         self.previous_hash = previous_hash
@@ -48,7 +59,7 @@ class Key:
     def show_key(self):
         print("Public key: %s" % self.public_key)
         print("Private key: %s" % self.private_key)
-
+ 
 class BlockChain:
     def __init__(self, key):
         # Will adjust difficulty after specific blocks number
@@ -64,7 +75,7 @@ class BlockChain:
         # All the blocks in current chain
         self.chain = []
         # Waiting for putting into block
-        self.pending_tansactions = []
+        self.pending_transactions = []
         # My own key
         self.key = key
 
@@ -107,13 +118,13 @@ class BlockChain:
 
     def add_transaction_to_block(self, block):
         # Higer priority for the higher fee
-        self.pending_tansactions.sort(key=lambda x: x.fee, reverse=True)
-        if len(self.pending_tansactions) > self.block_limitation:
-            transaction_accepted = self.pending_tansactions[:self.block_limitation]
-            self.pending_tansactions = self.pending_tansactions[self.block_limitation:]
+        self.pending_transactions.sort(key=lambda x: x.fee, reverse=True)
+        if len(self.pending_transactions) > self.block_limitation:
+            transaction_accepted = self.pending_transactions[:self.block_limitation]
+            self.pending_transactions = self.pending_transactions[self.block_limitation:]
         else:
-            transaction_accepted = self.pending_tansactions
-            self.pending_tansactions = []
+            transaction_accepted = self.pending_transactions
+            self.pending_transactions = []
         block.transactions = transaction_accepted
 
     def mine_block(self, miner):
@@ -152,7 +163,7 @@ class BlockChain:
             self.difficulty += 1
     
     def add_transaction(self, transaction):
-        self.pending_tansactions.append(transaction)
+        self.pending_transactions.append(transaction)
 
     def get_balace(self, account):
         balance = 0
@@ -170,3 +181,18 @@ class BlockChain:
                 elif transaction.receiver == account:
                     balance += transaction.amounts
         return balance
+ 
+    def add_transaction(self, transaction, signature):
+        public_key = '-----BEGIN RSA PUBLIC KEY-----\n'
+        public_key += transaction.sender
+        public_key += '\n-----END RSA PUBLIC KEY-----\n'
+        public_key_pkcs = rsa.PublicKey.load_pkcs1(public_key.encode('utf-8'))
+        transaction_str = transaction.to_string()
+        if transaction.fee + transaction.amounts > self.get_balance(transaction.sender):
+            return False, "Balance not enough!"
+        try:
+            rsa.verify(transaction_str.encode('utf-8'), signature, public_key_pkcs)
+            self.pending_transactions.append(transaction)
+            return True, "Authorized successfully!"
+        except Exception:
+            return False, "RSA Verified wrong!"

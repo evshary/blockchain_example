@@ -1,7 +1,6 @@
-import blockchain
 import threading
 import socket
-import json
+import pickle
 
 class Server:
     def __init__(self, myport, myblockchain):
@@ -36,31 +35,64 @@ class Server:
                 chunk_list.append(chunk)
             if len(chunk_list):
                 message = b"".join(chunk_list)
-                message_dict = json.load(message)
+                try:
+                    parsed_message = pickle.load(message)
+                except:
+                    print(f"Unable to parse {message}")
                 response = ""
-                if message_dict["request"] == "get_balance":
+                if parsed_message["request"] == "get_balance":
                     print(f"Get the balance for {address}")
-                    address = message_dict[address]
+                    address = parsed_message[address]
                     balance = self.myblockchain.get_balance(address)
                     response = {
                         "address": address,
                         "balance": balance
                     }
-                elif message_dict["request"] == "transaction":
-                    print("transaction")
-                elif message_dict["request"] == "clone_blockchain":
+                elif parsed_message["request"] == "transaction":
+                    print(f"Start to add transaction for {address}")
+                    new_transaction = parsed_message["data"]
+                    result, result_message = self.myblockchain.add_transaction(
+                        new_transaction,
+                        parsed_message["signature"]
+                    )
+                    response = {
+                        "result": result,
+                        "result_message": result_message
+                    }
+                    if result:
+                        self.broadcast_message_to_nodes("broadcast_transaction", new_transaction)
+                elif parsed_message["request"] == "clone_blockchain":
                     print("clone_blockchain")
-                elif message_dict["request"] == "broadcast_block":
+                    # TODO
+                elif parsed_message["request"] == "broadcast_block":
                     print("broadcast_block")
-                elif message_dict["request"] == "broadcast_transaction":
+                    # TODO
+                elif parsed_message["request"] == "broadcast_transaction":
                     print(f"Receive transaction broadcast from {address}")
-                    self.myblockchain.add_transaction(message_dict["data"])
-                elif message_dict["request"] == "add_node":
+                    self.myblockchain.add_transaction(parsed_message["data"])
+                elif parsed_message["request"] == "add_node":
                     print(f"Receive adding node requests from {address}")
-                    connection_tuple = (message_dict["address"], int(message_dict["port"]))
+                    connection_tuple = (parsed_message["address"], int(parsed_message["port"]))
                     if connection_tuple not in self.node_address:
                         self.node_address.append(connection_tuple)
                 else:
-                    print("Wrong request")
+                    print(f"Wrong request from {address}")
+                    response = {
+                        "message": "Unknown request"
+                    }
                 if response != "":
-                    connection.sendall(json.dumps(response))
+                    response_bytes = str(response).encode('utf-8')
+                    connection.sendall(response_bytes)
+
+    def broadcast_message_to_nodes(self, request, data=None):
+        message = {
+            "request": request,
+            "data": data
+        }
+        for node_address in self.node_address:
+            if node_address != (self.socket_host, self.socket_port):
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.connect(node_address)
+                client.sendall(pickle.dumps(message))
+                client.close()
+    
