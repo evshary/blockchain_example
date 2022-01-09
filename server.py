@@ -8,6 +8,7 @@ class Server:
         self.socket_host = "127.0.0.1"
         self.socket_port = myport
         self.myblockchain = myblockchain
+        self.node_address = []
         mythread = threading.Thread(target=self.listening_to_connection)
         mythread.start()
     
@@ -45,12 +46,15 @@ class Server:
                     print("clone_blockchain")
                 elif message_dict["request"] == "broadcast_block":
                     print("broadcast_block")
-                # Receive transcation broadcast
                 elif message_dict["request"] == "broadcast_transaction":
                     print(f"Receive transaction broadcast from {address}")
-                    self.myblockchain.add_transaction()
+                    self.myblockchain.add_transaction(message_dict["data"])
                 elif message_dict["request"] == "add_node":
-                    print("add_node")
+                    print(f"Receive adding node requests from {address}")
+                    connection_tuple = (message_dict["address"], int(message_dict["port"]))
+                    if connection_tuple not in self.node_address:
+                        self.node_address.append(connection_tuple)
                 else:
                     print("Wrong request")
-                connection.sendall(response)
+                if response != "":
+                    connection.sendall(response)

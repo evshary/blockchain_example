@@ -22,6 +22,33 @@ class Block:
         self.miner = miner
         self.miner_rewards = miner_rewards
 
+class Key:
+    def __init__(self):
+        public, private = rsa.newkeys(512)
+        self.public_key = self.extract_keystring(public.save_pkcs1())
+        self.private_key = self.extract_keystring(private.save_pkcs1())
+
+    def extract_keystring(self, key):
+        keystring = str(key).replace('\\n','')
+        # If the key is public key
+        keystring = keystring.replace("b'-----BEGIN RSA PUBLIC KEY-----", '')
+        keystring = keystring.replace("-----END RSA PUBLIC KEY-----'", '')
+        # If the key is private key
+        keystring = keystring.replace("b'-----BEGIN RSA PRIVATE KEY-----", '')
+        keystring = keystring.replace("-----END RSA PRIVATE KEY-----'", '')
+        keystring = keystring.replace(' ', '')
+        return keystring
+        
+    def get_publickey(self):
+        return self.public_key
+
+    def get_privatekey(self):
+        return self.private_key
+
+    def show_key(self):
+        print("Public key: %s" % self.public_key)
+        print("Private key: %s" % self.private_key)
+
 class BlockChain:
     def __init__(self, key):
         # Will adjust difficulty after specific blocks number
@@ -126,30 +153,3 @@ class BlockChain:
     
     def add_transaction(self, transaction):
         self.pending_tansactions.append(transaction)
-
-class Key:
-    def __init__(self):
-        public, private = rsa.newkeys(512)
-        self.public_key = self.extract_keystring(public.save_pkcs1())
-        self.private_key = self.extract_keystring(private.save_pkcs1())
-
-    def extract_keystring(self, key):
-        keystring = str(key).replace('\\n','')
-        # If the key is public key
-        keystring = keystring.replace("b'-----BEGIN RSA PUBLIC KEY-----", '')
-        keystring = keystring.replace("-----END RSA PUBLIC KEY-----'", '')
-        # If the key is private key
-        keystring = keystring.replace("b'-----BEGIN RSA PRIVATE KEY-----", '')
-        keystring = keystring.replace("-----END RSA PRIVATE KEY-----'", '')
-        keystring = keystring.replace(' ', '')
-        return keystring
-        
-    def get_publickey(self):
-        return self.public_key
-
-    def get_privatekey(self):
-        return self.private_key
-
-    def show_key(self):
-        print("Public key: %s" % self.public_key)
-        print("Private key: %s" % self.private_key)
