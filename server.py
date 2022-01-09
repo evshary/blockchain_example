@@ -39,7 +39,13 @@ class Server:
                 message_dict = json.load(message)
                 response = ""
                 if message_dict["request"] == "get_balance":
-                    print("get_balance")
+                    print(f"Get the balance for {address}")
+                    address = message_dict[address]
+                    balance = self.myblockchain.get_balance(address)
+                    response = {
+                        "address": address,
+                        "balance": balance
+                    }
                 elif message_dict["request"] == "transaction":
                     print("transaction")
                 elif message_dict["request"] == "clone_blockchain":
@@ -57,4 +63,4 @@ class Server:
                 else:
                     print("Wrong request")
                 if response != "":
-                    connection.sendall(response)
+                    connection.sendall(json.dumps(response))
