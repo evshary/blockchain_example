@@ -39,7 +39,7 @@ class Server:
                     parsed_message = pickle.load(message)
                 except:
                     print(f"Unable to parse {message}")
-                response = ""
+                response = None
                 if parsed_message["request"] == "get_balance":
                     print(f"Get the balance for {address}")
                     address = parsed_message[address]
@@ -62,11 +62,14 @@ class Server:
                     if result:
                         self.broadcast_message_to_nodes("broadcast_transaction", new_transaction)
                 elif parsed_message["request"] == "clone_blockchain":
-                    print("clone_blockchain")
-                    # TODO
+                    print(f"Receive synchronizing blockchain request from {address}")
+                    response = {
+                           "request": "upload_blockchain",
+                           "blockchain_data": self.myblockchain
+                    }
                 elif parsed_message["request"] == "broadcast_block":
-                    print("broadcast_block")
-                    # TODO
+                    print(f"Receive mined result from {address}")
+                    self.myblockchain.receive_broadcast_block(parsed_message["data"])
                 elif parsed_message["request"] == "broadcast_transaction":
                     print(f"Receive transaction broadcast from {address}")
                     self.myblockchain.add_transaction(parsed_message["data"])
@@ -80,9 +83,8 @@ class Server:
                     response = {
                         "message": "Unknown request"
                     }
-                if response != "":
-                    response_bytes = str(response).encode('utf-8')
-                    connection.sendall(response_bytes)
+                if response != None:
+                    connection.sendall(pickle.dumps(response))
 
     def broadcast_message_to_nodes(self, request, data=None):
         message = {

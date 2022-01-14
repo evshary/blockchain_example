@@ -196,3 +196,22 @@ class BlockChain:
             return True, "Authorized successfully!"
         except Exception:
             return False, "RSA Verified wrong!"
+    
+    def receive_broadcast_block(self, block_data):
+        last_block = self.chain[-1]
+        if block_data.previous_hash != last_block.hash:
+            print("Error received block: unmatched hash")
+            return False
+        elif block_data.hash[0: self.difficulty] == '0' * self.difficulty:
+            print("Error received block: unmatched difficulty")
+            return False
+        elif block_data.hash != self.get_hash(block_data, block_data.nonce):
+            print(block_data.hash)
+            print("Error received block: wrong hash calculation")
+            return False
+        else:
+            for transaction in block_data.transactions:
+                    self.pending_transaction.remove(transaction)
+            self.receive_verified_block = True
+            self.chain.append(block_data)
+            return True
